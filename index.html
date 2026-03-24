@@ -1,0 +1,2431 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ProfesorIA">
+<meta name="theme-color" content="#0e0c0a">
+<meta name="description" content="Leer Spaans met een AI-leraar — gesprekken, oefeningen en grammatica">
+<link rel="manifest" id="manifestLink">
+<title>ProfesorIA — Leer Spaans</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0e0c0a;
+    --surface: #1a1714;
+    --card: #221f1b;
+    --border: #2e2a25;
+    --accent: #e8a045;
+    --accent2: #c95f3a;
+    --text: #f0ead8;
+    --muted: #8a7f72;
+    --success: #5fad7e;
+    --user-bubble: #2a2420;
+    --ai-bubble: #1e2e26;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* HEADER */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 24px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    flex-shrink: 0;
+  }
+
+  .logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.4rem;
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .logo span { color: var(--text); font-style: italic; font-weight: 400; font-size: 1rem; }
+
+  .level-badge {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 4px 14px;
+    font-size: 0.78rem;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .level-badge:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* NAV TABS */
+  .tabs {
+    display: flex;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+    flex-shrink: 0;
+  }
+
+  .tab {
+    padding: 12px 18px;
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: var(--muted);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab:hover:not(.active) { color: var(--text); }
+
+  /* MAIN CONTENT */
+  .content {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+  }
+
+  .panel {
+    display: none;
+    flex: 1;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .panel.active { display: flex; }
+
+  /* CHAT PANEL */
+  .chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+
+  .message {
+    display: flex;
+    gap: 12px;
+    max-width: 780px;
+    animation: fadeUp 0.3s ease;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .message.user { align-self: flex-end; flex-direction: row-reverse; }
+
+  .avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    flex-shrink: 0;
+    margin-top: 4px;
+  }
+
+  .avatar.ai { background: linear-gradient(135deg, var(--accent2), var(--accent)); }
+  .avatar.user { background: var(--card); border: 1px solid var(--border); }
+
+  .bubble {
+    padding: 12px 16px;
+    border-radius: 14px;
+    line-height: 1.6;
+    font-size: 0.9rem;
+    max-width: 600px;
+  }
+
+  .message.ai .bubble {
+    background: var(--ai-bubble);
+    border: 1px solid var(--border);
+    border-top-left-radius: 4px;
+  }
+
+  .message.user .bubble {
+    background: var(--user-bubble);
+    border: 1px solid var(--border);
+    border-top-right-radius: 4px;
+  }
+
+  .bubble .es { color: var(--accent); font-weight: 500; }
+  .bubble .hint { color: var(--muted); font-size: 0.82rem; font-style: italic; }
+
+  .typing-indicator {
+    display: flex;
+    gap: 4px;
+    padding: 12px 16px;
+    background: var(--ai-bubble);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    border-top-left-radius: 4px;
+    width: fit-content;
+  }
+
+  .typing-indicator span {
+    width: 7px; height: 7px;
+    background: var(--muted);
+    border-radius: 50%;
+    animation: bounce 1.2s infinite;
+  }
+  .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+  .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+
+  @keyframes bounce {
+    0%,60%,100% { transform: translateY(0); }
+    30% { transform: translateY(-6px); }
+  }
+
+  /* CHAT INPUT */
+  .chat-input-area {
+    padding: 10px 16px 14px;
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .input-top-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .input-bottom-row {
+    display: flex;
+    gap: 8px;
+    align-items: flex-end;
+  }
+
+  .mode-toggle {
+    display: flex;
+    gap: 3px;
+    background: var(--card);
+    border-radius: 8px;
+    padding: 3px;
+    border: 1px solid var(--border);
+  }
+
+  .mode-btn {
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: none;
+    background: none;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 0.75rem;
+    transition: all 0.2s;
+  }
+  .mode-btn.active { background: var(--accent); color: #000; font-weight: 500; }
+
+  /* Big mic button — always visible */
+  .mic-btn-big {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: linear-gradient(135deg, var(--accent2), var(--accent));
+    border: none;
+    border-radius: 20px;
+    padding: 7px 16px;
+    color: #000;
+    font-family: inherit;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .mic-btn-big:hover { transform: scale(1.04); opacity: 0.92; }
+  .mic-btn-big:active { transform: scale(0.97); }
+
+  .chat-input {
+    flex: 1;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 14px;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 0.9rem;
+    resize: none;
+    outline: none;
+    min-height: 42px;
+    max-height: 120px;
+    transition: border-color 0.2s;
+  }
+  .chat-input:focus { border-color: var(--accent); }
+  .chat-input::placeholder { color: var(--muted); }
+
+  .send-btn {
+    background: var(--accent);
+    border: none;
+    border-radius: 10px;
+    width: 42px;
+    height: 42px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+  .send-btn:hover { background: #f0b060; transform: scale(1.05); }
+  .send-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  /* OEFENINGEN PANEL */
+  .exercises-grid {
+    padding: 24px;
+    overflow-y: auto;
+    flex: 1;
+  }
+
+  .exercises-grid h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.4rem;
+    margin-bottom: 8px;
+    color: var(--accent);
+  }
+
+  .exercises-grid p { color: var(--muted); margin-bottom: 24px; font-size: 0.88rem; }
+
+  .ex-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+
+  .ex-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .ex-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--accent);
+    transform: scaleX(0);
+    transition: transform 0.2s;
+  }
+
+  .ex-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .ex-card:hover::before { transform: scaleX(1); }
+
+  .ex-icon { font-size: 1.8rem; margin-bottom: 10px; }
+  .ex-title { font-weight: 500; margin-bottom: 4px; }
+  .ex-desc { color: var(--muted); font-size: 0.82rem; }
+
+  /* EXERCISE VIEW */
+  .exercise-view {
+    padding: 32px;
+    max-width: 680px;
+    margin: 0 auto;
+    overflow-y: auto;
+    flex: 1;
+    width: 100%;
+  }
+
+  .ex-back {
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 0.85rem;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: color 0.2s;
+    font-family: inherit;
+  }
+  .ex-back:hover { color: var(--text); }
+
+  .ex-question {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.6rem;
+    margin-bottom: 8px;
+    line-height: 1.3;
+  }
+  .ex-sub { color: var(--muted); font-size: 0.85rem; margin-bottom: 28px; }
+
+  .ex-options { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+
+  .ex-option {
+    background: var(--card);
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 18px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+    text-align: left;
+    color: var(--text);
+    font-family: inherit;
+  }
+  .ex-option:hover:not(:disabled) { border-color: var(--accent); background: #2a2420; }
+  .ex-option.correct { border-color: var(--success); background: #1a2e20; color: var(--success); }
+  .ex-option.wrong { border-color: var(--accent2); background: #2a1a14; color: #e07060; }
+
+  .ex-feedback {
+    padding: 14px 18px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    font-size: 0.88rem;
+    line-height: 1.5;
+    display: none;
+  }
+  .ex-feedback.correct { background: #1a2e20; border: 1px solid var(--success); color: var(--success); }
+  .ex-feedback.wrong { background: #2a1a14; border: 1px solid var(--accent2); color: #e07060; }
+
+  .ex-next {
+    background: var(--accent);
+    border: none;
+    border-radius: 10px;
+    padding: 12px 28px;
+    color: #000;
+    font-family: inherit;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: none;
+  }
+  .ex-next:hover { background: #f0b060; }
+
+  .fill-input {
+    width: 100%;
+    background: var(--card);
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 18px;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 1rem;
+    outline: none;
+    transition: border-color 0.2s;
+    margin-bottom: 12px;
+  }
+  .fill-input:focus { border-color: var(--accent); }
+
+  .check-btn {
+    background: var(--accent);
+    border: none;
+    border-radius: 10px;
+    padding: 12px 28px;
+    color: #000;
+    font-family: inherit;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 16px;
+  }
+  .check-btn:hover { background: #f0b060; }
+
+  /* WOORDENSCHAT PANEL */
+  .vocab-panel {
+    padding: 24px;
+    overflow-y: auto;
+    flex: 1;
+  }
+
+  .vocab-panel h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.4rem;
+    margin-bottom: 8px;
+    color: var(--accent);
+  }
+
+  .vocab-panel > p { color: var(--muted); margin-bottom: 20px; font-size: 0.88rem; }
+
+  .vocab-search {
+    width: 100%;
+    max-width: 400px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 14px;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 0.9rem;
+    outline: none;
+    margin-bottom: 20px;
+    transition: border-color 0.2s;
+  }
+  .vocab-search:focus { border-color: var(--accent); }
+
+  .vocab-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 12px;
+  }
+
+  .vocab-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+    perspective: 600px;
+  }
+  .vocab-card:hover { border-color: var(--accent); }
+
+  .vocab-front { display: block; }
+  .vocab-back { display: none; color: var(--success); }
+  .vocab-card.flipped .vocab-front { display: none; }
+  .vocab-card.flipped .vocab-back { display: block; }
+
+  .vocab-es { font-size: 1.05rem; font-weight: 500; color: var(--accent); margin-bottom: 4px; }
+  .vocab-cat { font-size: 0.75rem; color: var(--muted); }
+  .vocab-nl { font-size: 1rem; }
+  .vocab-ex { font-size: 0.8rem; color: var(--muted); font-style: italic; margin-top: 6px; }
+
+  .section-title {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    margin-bottom: 12px;
+    margin-top: 8px;
+  }
+
+  /* GRAMMAR PANEL */
+  .grammar-panel {
+    padding: 24px;
+    overflow-y: auto;
+    flex: 1;
+    max-width: 760px;
+  }
+
+  .grammar-panel h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.4rem;
+    margin-bottom: 8px;
+    color: var(--accent);
+  }
+
+  .grammar-panel > p { color: var(--muted); margin-bottom: 24px; font-size: 0.88rem; }
+
+  .grammar-topic {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin-bottom: 16px;
+    overflow: hidden;
+  }
+
+  .grammar-topic-header {
+    padding: 16px 20px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: background 0.2s;
+  }
+  .grammar-topic-header:hover { background: #252019; }
+
+  .grammar-topic-title { font-weight: 500; }
+  .grammar-topic-badge { font-size: 0.75rem; color: var(--muted); }
+  .grammar-arrow { color: var(--muted); transition: transform 0.2s; font-size: 0.8rem; }
+  .grammar-topic.open .grammar-arrow { transform: rotate(180deg); }
+
+  .grammar-body {
+    display: none;
+    padding: 0 20px 20px;
+    border-top: 1px solid var(--border);
+  }
+  .grammar-topic.open .grammar-body { display: block; }
+
+  .grammar-body p { color: var(--muted); font-size: 0.88rem; margin: 12px 0 16px; line-height: 1.6; }
+
+  .conj-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+    margin-bottom: 12px;
+  }
+
+  .conj-table th {
+    background: var(--surface);
+    padding: 8px 12px;
+    text-align: left;
+    color: var(--muted);
+    font-weight: 400;
+    border: 1px solid var(--border);
+  }
+
+  .conj-table td {
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+  }
+
+  .conj-table td:first-child { color: var(--muted); }
+  .conj-table td:last-child { color: var(--accent); font-weight: 500; }
+
+  .grammar-example {
+    background: var(--surface);
+    border-left: 3px solid var(--accent);
+    padding: 10px 14px;
+    border-radius: 0 8px 8px 0;
+    margin-bottom: 8px;
+    font-size: 0.88rem;
+  }
+
+  .grammar-example .es { color: var(--accent); display: block; margin-bottom: 2px; }
+  .grammar-example .nl { color: var(--muted); font-style: italic; }
+
+  /* PROGRESS BAR */
+  .progress-bar {
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    margin-bottom: 24px;
+    margin-top: 8px;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent2), var(--accent));
+    border-radius: 2px;
+    transition: width 0.5s ease;
+  }
+
+  /* LEVEL MODAL */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    display: none;
+  }
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px;
+    max-width: 400px;
+    width: 90%;
+  }
+
+  .modal h3 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.3rem;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+
+  .modal p { color: var(--muted); font-size: 0.85rem; margin-bottom: 20px; }
+
+  .level-options { display: flex; flex-direction: column; gap: 8px; }
+
+  .level-opt {
+    background: var(--surface);
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: left;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 0.88rem;
+  }
+  .level-opt:hover, .level-opt.selected { border-color: var(--accent); background: #2a2218; }
+  .level-opt .lvl { color: var(--accent); font-weight: 500; margin-right: 8px; }
+
+  .modal-close {
+    background: var(--accent);
+    border: none;
+    border-radius: 8px;
+    padding: 10px 24px;
+    color: #000;
+    font-family: inherit;
+    font-weight: 500;
+    cursor: pointer;
+    margin-top: 16px;
+    font-size: 0.88rem;
+  }
+
+  /* MIC BUTTON */
+  .mic-btn {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    width: 42px;
+    height: 42px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    transition: all 0.2s;
+    flex-shrink: 0;
+    position: relative;
+  }
+  .mic-btn:hover { border-color: var(--accent); }
+  .mic-btn.recording {
+    background: #3a1a14;
+    border-color: var(--accent2);
+    animation: pulse-mic 1s infinite;
+  }
+  @keyframes pulse-mic {
+    0%,100% { box-shadow: 0 0 0 0 rgba(201,95,58,0.4); }
+    50% { box-shadow: 0 0 0 8px rgba(201,95,58,0); }
+  }
+
+  /* SPEAK BUTTON on AI bubble */
+  .speak-btn {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 3px 8px;
+    color: var(--muted);
+    font-size: 0.75rem;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .speak-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .speak-btn.speaking { border-color: var(--success); color: var(--success); }
+
+  /* VOICE MODE OVERLAY */
+  .voice-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(8,7,5,0.92);
+    z-index: 200;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+    display: none;
+  }
+  .voice-overlay.open { display: flex; }
+
+  .voice-circle {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent2), var(--accent));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.8rem;
+    position: relative;
+    cursor: pointer;
+    transition: transform 0.2s;
+  }
+  .voice-circle:hover { transform: scale(1.05); }
+  .voice-circle.listening {
+    animation: pulse-voice 1.2s infinite;
+  }
+  .voice-circle.speaking-anim {
+    animation: pulse-speak 0.8s infinite;
+  }
+  @keyframes pulse-voice {
+    0%,100% { box-shadow: 0 0 0 0 rgba(232,160,69,0.5), 0 0 0 0 rgba(232,160,69,0.3); }
+    50% { box-shadow: 0 0 0 20px rgba(232,160,69,0.1), 0 0 0 40px rgba(232,160,69,0.05); }
+  }
+  @keyframes pulse-speak {
+    0%,100% { box-shadow: 0 0 0 0 rgba(95,173,126,0.5); }
+    50% { box-shadow: 0 0 0 25px rgba(95,173,126,0); }
+  }
+
+  .voice-status {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.2rem;
+    color: var(--text);
+    text-align: center;
+  }
+  .voice-transcript {
+    max-width: 480px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.9rem;
+    min-height: 48px;
+    line-height: 1.5;
+    padding: 0 20px;
+  }
+  .voice-transcript.active { color: var(--accent); }
+
+  .voice-close {
+    position: absolute;
+    top: 20px;
+    right: 24px;
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--muted);
+    padding: 6px 14px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.85rem;
+    transition: all 0.2s;
+  }
+  .voice-close:hover { border-color: var(--text); color: var(--text); }
+
+  .voice-hint {
+    font-size: 0.78rem;
+    color: var(--muted);
+    text-align: center;
+  }
+
+  .voice-wave {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    height: 32px;
+  }
+  .voice-wave span {
+    width: 4px;
+    background: var(--accent);
+    border-radius: 2px;
+    animation: wave 1s infinite ease-in-out;
+    height: 8px;
+  }
+  .voice-wave span:nth-child(2) { animation-delay: 0.1s; height: 16px; }
+  .voice-wave span:nth-child(3) { animation-delay: 0.2s; height: 24px; }
+  .voice-wave span:nth-child(4) { animation-delay: 0.3s; height: 16px; }
+  .voice-wave span:nth-child(5) { animation-delay: 0.4s; height: 8px; }
+  @keyframes wave {
+    0%,100% { transform: scaleY(1); opacity: 0.6; }
+    50% { transform: scaleY(1.8); opacity: 1; }
+  }
+  .voice-wave.hidden { display: none; }
+
+  /* TTS toggle in header */
+  .tts-toggle {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 5px 10px;
+    color: var(--muted);
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .tts-toggle.active { border-color: var(--success); color: var(--success); }
+
+  .header-controls { display: flex; gap: 8px; align-items: center; }
+
+  /* ===================== READER ===================== */
+  .reader-home {
+    padding: 24px;
+    overflow-y: auto;
+    flex: 1;
+  }
+  .reader-home h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.4rem;
+    color: var(--accent);
+    margin-bottom: 6px;
+  }
+  .reader-home > p { color: var(--muted); font-size: 0.88rem; margin-bottom: 24px; }
+
+  .book-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 16px;
+  }
+
+  .book-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    flex-direction: column;
+  }
+  .book-card:hover { border-color: var(--accent); transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
+
+  .book-cover {
+    height: 110px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 3.5rem;
+    position: relative;
+  }
+  .book-level-tag {
+    position: absolute;
+    top: 10px; right: 10px;
+    background: rgba(0,0,0,0.5);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 2px 8px;
+    font-size: 0.7rem;
+    color: var(--accent);
+    font-weight: 600;
+  }
+  .book-info { padding: 14px 16px; }
+  .book-title { font-weight: 600; margin-bottom: 4px; font-size: 0.95rem; }
+  .book-title-nl { color: var(--muted); font-size: 0.8rem; font-style: italic; margin-bottom: 8px; }
+  .book-meta { display: flex; gap: 10px; font-size: 0.75rem; color: var(--muted); }
+
+  /* READER VIEW */
+  .reader-view {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .reader-topbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    flex-shrink: 0;
+  }
+
+  .reader-back {
+    background: none; border: none; color: var(--muted);
+    cursor: pointer; font-size: 0.85rem; font-family: inherit;
+    transition: color 0.2s; padding: 0;
+  }
+  .reader-back:hover { color: var(--text); }
+
+  .reader-title-bar { flex: 1; }
+  .reader-title-bar h3 { font-family: 'Playfair Display', serif; font-size: 1rem; color: var(--accent); }
+  .reader-title-bar span { font-size: 0.75rem; color: var(--muted); }
+
+  .reader-controls {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .rc-btn {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 6px 12px;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 0.78rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .rc-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .rc-btn.active { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 600; }
+
+  .reader-body {
+    flex: 1;
+    padding: 24px;
+    max-width: 720px;
+    width: 100%;
+    margin: 0 auto;
+  }
+
+  /* Progress bar */
+  .reader-progress {
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    margin-bottom: 28px;
+  }
+  .reader-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent2), var(--accent));
+    border-radius: 2px;
+    transition: width 0.4s ease;
+  }
+
+  /* Sentence blocks */
+  .sentence-block {
+    display: flex;
+    gap: 12px;
+    padding: 12px 14px;
+    border-radius: 10px;
+    margin-bottom: 6px;
+    cursor: pointer;
+    transition: background 0.15s;
+    align-items: flex-start;
+    border: 1px solid transparent;
+  }
+  .sentence-block:hover { background: var(--card); border-color: var(--border); }
+  .sentence-block.playing {
+    background: #1e2a1a;
+    border-color: var(--success);
+  }
+  .sentence-block.read { opacity: 0.6; }
+
+  .sentence-num {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.68rem;
+    color: var(--muted);
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .sentence-block.playing .sentence-num {
+    background: var(--success);
+    color: #000;
+  }
+
+  .sentence-content { flex: 1; }
+  .sentence-es {
+    font-size: 1.05rem;
+    line-height: 1.6;
+    color: var(--text);
+    margin-bottom: 3px;
+  }
+  .sentence-nl {
+    font-size: 0.85rem;
+    color: var(--muted);
+    font-style: italic;
+    line-height: 1.5;
+    display: none;
+  }
+  .sentence-nl.visible { display: block; }
+
+  .sentence-play {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    width: 30px; height: 30px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    color: var(--muted);
+    font-size: 0.85rem;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+  .sentence-play:hover { border-color: var(--accent); color: var(--accent); }
+  .sentence-block.playing .sentence-play { border-color: var(--success); color: var(--success); }
+
+  /* Autoplay bar */
+  .autoplay-bar {
+    position: sticky;
+    bottom: 0;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .ap-btn {
+    background: var(--accent);
+    border: none;
+    border-radius: 20px;
+    padding: 8px 20px;
+    color: #000;
+    font-family: inherit;
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .ap-btn:hover { background: #f0b060; }
+  .ap-btn.stop { background: var(--card); border: 1px solid var(--accent2); color: var(--accent2); }
+  .ap-btn.stop:hover { background: #2a1a14; }
+
+  .speed-select {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 6px 10px;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 0.8rem;
+    cursor: pointer;
+    outline: none;
+  }
+
+  .reader-done {
+    text-align: center;
+    padding: 32px 20px;
+    color: var(--muted);
+  }
+  .reader-done .big { font-size: 2.5rem; margin-bottom: 10px; }
+  .reader-done p { font-size: 0.9rem; margin-bottom: 16px; }
+  .reader-done button {
+    background: var(--accent); border: none; border-radius: 10px;
+    padding: 10px 24px; color: #000; font-family: inherit;
+    font-weight: 600; cursor: pointer; font-size: 0.88rem;
+  }
+
+  @media (max-width: 600px) {
+    .reader-body { padding: 14px; }
+    .sentence-es { font-size: 0.95rem; }
+    .book-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+    .book-info { padding: 10px 12px; }
+    .book-title { font-size: 0.85rem; }
+  }
+
+  /* ===================== END READER ===================== */
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  @media (max-width: 600px) {
+    .tabs { gap: 0; padding: 0 4px; overflow-x: auto; }
+    .tab { padding: 11px 10px; font-size: 0.76rem; white-space: nowrap; }
+    .chat-messages, .exercises-grid, .vocab-panel, .grammar-panel { padding: 12px; }
+    header { padding: 10px 14px; }
+    .logo { font-size: 1.1rem; }
+    .logo span { display: none; }
+    .tts-toggle { font-size: 0.7rem; padding: 4px 8px; }
+    .level-badge { font-size: 0.72rem; padding: 4px 10px; }
+    .mic-btn-big { padding: 7px 14px; font-size: 0.8rem; }
+    .input-top-row { flex-wrap: wrap; gap: 8px; }
+    .voice-circle { width: 100px; height: 100px; font-size: 2.4rem; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">🇪🇸 ProfesorIA <span>— Spaans leren</span></div>
+  <div class="header-controls">
+    <button class="tts-toggle" id="ttsToggle" onclick="toggleTTS()" title="Leraar hardop laten spreken">🔇 Stem uit</button>
+    <button class="level-badge" id="levelBadge" onclick="openModal()">Niveau: A1 Beginner ▾</button>
+  </div>
+</header>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('chat')" id="tab-chat">💬 Gesprek</div>
+  <div class="tab" onclick="switchTab('exercises')" id="tab-exercises">✏️ Oefeningen</div>
+  <div class="tab" onclick="switchTab('vocab')" id="tab-vocab">📚 Woordenschat</div>
+  <div class="tab" onclick="switchTab('grammar')" id="tab-grammar">📖 Grammatica</div>
+  <div class="tab" onclick="switchTab('reader')" id="tab-reader">📖 Leesboekjes</div>
+</div>
+
+<div class="content">
+
+  <!-- CHAT PANEL -->
+  <div class="panel active" id="panel-chat">
+    <div class="chat-messages" id="chatMessages">
+      <div class="message ai">
+        <div class="avatar ai">🎓</div>
+        <div class="bubble">
+          ¡Hola! Ik ben <strong>ProfesorIA</strong>, jouw persoonlijke Spaanse leraar! 🌞<br><br>
+          Ik kan je helpen met <span class="es">conversar en español</span> (converseren in het Spaans), grammatica uitleggen, zinnen verbeteren, en alles wat je wilt weten over de Spaanse taal.<br><br>
+          Vertel me: wat wil je vandaag leren? Of begin gewoon met een bericht in het Spaans — ik help je verder!<br><br>
+          <span class="hint">💡 Tip: Gebruik de knoppen hieronder om te kiezen of je in het Spaans of Nederlands wilt typen.</span>
+        </div>
+      </div>
+    </div>
+    <div class="chat-input-area">
+      <div class="input-top-row">
+        <div class="mode-toggle">
+          <button class="mode-btn active" id="modeES" onclick="setMode('es')">🇪🇸 ES</button>
+          <button class="mode-btn" id="modeNL" onclick="setMode('nl')">🇳🇱 NL</button>
+        </div>
+        <span style="color:var(--muted);font-size:0.75rem;">of spreek:</span>
+        <button class="mic-btn-big" id="micBtn" onclick="openVoiceMode()">🎙️ Microfoon</button>
+      </div>
+      <div class="input-bottom-row">
+        <textarea class="chat-input" id="chatInput" placeholder="Typ hier in het Spaans of Nederlands..." rows="1" onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+        <button class="send-btn" id="sendBtn" onclick="sendMessage()">➤</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- EXERCISES PANEL -->
+  <div class="panel" id="panel-exercises">
+    <div id="exercisesHome" class="exercises-grid">
+      <h2>Oefeningen</h2>
+      <p>Kies een oefening om je Spaans te verbeteren</p>
+
+      <div class="section-title">Luisteren & Begrijpen</div>
+      <div class="ex-cards">
+        <div class="ex-card" onclick="startExercise('mc')">
+          <div class="ex-icon">🎯</div>
+          <div class="ex-title">Meerkeuze</div>
+          <div class="ex-desc">Vertaal de zin en kies het juiste antwoord</div>
+        </div>
+        <div class="ex-card" onclick="startExercise('fill')">
+          <div class="ex-icon">✍️</div>
+          <div class="ex-title">Aanvullen</div>
+          <div class="ex-desc">Vul het ontbrekende Spaanse woord in</div>
+        </div>
+        <div class="ex-card" onclick="startExercise('translate')">
+          <div class="ex-icon">🔄</div>
+          <div class="ex-title">Vertalen</div>
+          <div class="ex-desc">Vertaal Nederlandse zinnen naar het Spaans</div>
+        </div>
+        <div class="ex-card" onclick="startExercise('conj')">
+          <div class="ex-icon">📝</div>
+          <div class="ex-title">Werkwoorden</div>
+          <div class="ex-desc">Vervoeg werkwoorden in de juiste vorm</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="exerciseView" class="exercise-view" style="display:none;">
+      <!-- dynamisch gevuld -->
+    </div>
+  </div>
+
+  <!-- VOCAB PANEL -->
+  <div class="panel" id="panel-vocab">
+    <div class="vocab-panel">
+      <h2>Woordenschat</h2>
+      <p>Klik op een kaart om de vertaling te zien</p>
+      <input class="vocab-search" type="text" placeholder="Zoek een woord..." oninput="filterVocab(this.value)" id="vocabSearch">
+
+      <div class="section-title">Dagelijks leven</div>
+      <div class="vocab-grid" id="vocabGrid"></div>
+    </div>
+  </div>
+
+  <!-- GRAMMAR PANEL -->
+  <div class="panel" id="panel-grammar">
+    <div class="grammar-panel">
+      <h2>Grammatica</h2>
+      <p>Leer de basisregels van de Spaanse grammatica</p>
+
+      <div id="grammarContent"></div>
+    </div>
+  </div>
+
+  <!-- READER PANEL -->
+  <div class="panel" id="panel-reader">
+    <div id="readerHome" class="reader-home">
+      <h2>📖 Leesboekjes</h2>
+      <p>Lees korte Spaanse verhaaltjes op jouw niveau — met audio en vertaling</p>
+      <div class="book-grid" id="bookGrid"></div>
+    </div>
+    <div id="readerView" class="reader-view" style="display:none;"></div>
+  </div>
+
+</div>
+<div class="voice-overlay" id="voiceOverlay">
+  <button class="voice-close" onclick="closeVoiceMode()">✕ Sluiten</button>
+  <div style="text-align:center">
+    <div style="font-family:'Playfair Display',serif;font-size:1.8rem;color:var(--accent);margin-bottom:4px">Spreek met ProfesorIA</div>
+    <div style="color:var(--muted);font-size:0.85rem">Spaans oefenen via spraak</div>
+  </div>
+  <div class="voice-circle" id="voiceCircle" onclick="toggleListening()">🎙️</div>
+  <div class="voice-wave hidden" id="voiceWave">
+    <span></span><span></span><span></span><span></span><span></span>
+  </div>
+  <div class="voice-status" id="voiceStatus">Klik op de microfoon om te beginnen</div>
+  <div class="voice-transcript" id="voiceTranscript">Jouw woorden verschijnen hier...</div>
+  <div class="voice-hint" id="voiceHint">💡 Spreek in het Spaans of Nederlands — de leraar reageert op beide</div>
+</div>
+
+<!-- LEVEL MODAL -->
+<div class="modal-overlay" id="levelModal">
+  <div class="modal">
+    <h3>Kies je niveau</h3>
+    <p>Past de oefeningen en uitleg aan op jouw niveau.</p>
+    <div class="level-options">
+      <button class="level-opt selected" onclick="setLevel('A1', this)"><span class="lvl">A1</span> Absolute beginner — geen kennis vereist</button>
+      <button class="level-opt" onclick="setLevel('A2', this)"><span class="lvl">A2</span> Beginner — kent basiswoorden</button>
+      <button class="level-opt" onclick="setLevel('B1', this)"><span class="lvl">B1</span> Gevorderd beginner — eenvoudige gesprekken</button>
+      <button class="level-opt" onclick="setLevel('B2', this)"><span class="lvl">B2</span> Gemiddeld — kan zichzelf uitdrukken</button>
+    </div>
+    <button class="modal-close" onclick="closeModal()">Opslaan</button>
+  </div>
+</div>
+
+<script>
+// ===================== STATE =====================
+let userLevel = 'A1';
+let chatMode = 'es';
+let isLoading = false;
+let chatHistory = [];
+let ttsEnabled = false;
+let recognition = null;
+let isListening = false;
+let currentUtterance = null;
+
+const SYSTEM_PROMPT = () => `Je bent ProfesorIA, een vriendelijke en enthousiaste Spaanse taalleraar die Nederlands spreekt. 
+Je helpt de gebruiker Spaans leren op niveau ${userLevel}.
+
+Regels:
+- Reageer ALTIJD in het Nederlands, tenzij de gebruiker expliciet vraagt om in het Spaans te antwoorden
+- Als de gebruiker in het Spaans schrijft: verbeter vriendelijk fouten, benoem wat goed was, en reageer op de inhoud
+- Als de gebruiker in het Nederlands schrijft: geef uitleg, voorbeeldzinnen in het Spaans (vet of cursief), en vertalingen
+- Gebruik emoji's spaarzaam maar vriendelijk 
+- Geef altijd korte voorbeeldzinnen bij uitleg
+- Houd antwoorden beknopt en duidelijk (max 3-4 alinea's)
+- Moedig de gebruiker altijd aan
+- Niveau ${userLevel}: ${userLevel === 'A1' ? 'gebruik simpele taal en veel uitleg' : userLevel === 'A2' ? 'introduceer meer vocabulaire' : userLevel === 'B1' ? 'gebruik complexere zinnen' : 'verdiep grammatica en idioom'}`;
+
+// ===================== TTS =====================
+const ELEVEN_KEY = '6cdbcb3ae908764538b56322506d59fb1e3c7c1a6574026af9c965bddb0ad230';
+// Spaanse stem: Ana (Spaans) — gratis beschikbaar
+const ELEVEN_VOICE_ES = 'XrExE9yKIg1WjnnlVkGX'; // Matilda — naturel Spaans accent
+const ELEVEN_VOICE_NL = 'EXAVITQu4vr4xnSDxMaL'; // Bella — naturel voor NL tekst
+
+let currentAudio = null;
+
+async function elevenSpeak(text, voiceId) {
+  try {
+    if (currentAudio) { currentAudio.pause(); currentAudio = null; }
+    const clean = text.replace(/<[^>]+>/g, '').replace(/&[a-z]+;/g, ' ').slice(0, 500);
+    const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
+      method: 'POST',
+      headers: {
+        'xi-api-key': ELEVEN_KEY,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        text: clean,
+        model_id: 'eleven_multilingual_v2',
+        voice_settings: { stability: 0.5, similarity_boost: 0.75 }
+      })
+    });
+    if (!response.ok) throw new Error('ElevenLabs fout');
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    currentAudio = new Audio(url);
+    currentAudio.play();
+    return currentAudio;
+  } catch(e) {
+    // Fallback naar browser stem
+    console.warn('ElevenLabs fallback:', e);
+    return browserSpeak(text, voiceId === ELEVEN_VOICE_ES ? 'es-ES' : 'nl-NL');
+  }
+}
+
+function browserSpeak(text, lang) {
+  speechSynthesis.cancel();
+  const clean = text.replace(/<[^>]+>/g, '').replace(/&[a-z]+;/g, ' ');
+  const utter = new SpeechSynthesisUtterance(clean);
+  utter.lang = lang;
+  utter.rate = 0.9;
+  const voices = speechSynthesis.getVoices();
+  const match = voices.find(v => v.lang.startsWith(lang.slice(0,2)));
+  if (match) utter.voice = match;
+  speechSynthesis.speak(utter);
+  return utter;
+}
+
+function speakES(text, e) {
+  if (e) e.stopPropagation();
+  elevenSpeak(text, ELEVEN_VOICE_ES);
+}
+
+function speakText(text, lang = 'nl-NL') {
+  return elevenSpeak(text, lang === 'nl-NL' ? ELEVEN_VOICE_NL : ELEVEN_VOICE_ES);
+}
+
+function speakSpanish(text, btn) {
+  if (btn) {
+    btn.classList.add('speaking');
+    btn.textContent = '🔊 Speelt...';
+  }
+  const audio = elevenSpeak(text, ELEVEN_VOICE_ES);
+  if (btn) {
+    Promise.resolve(audio).then(a => {
+      if (a && a.addEventListener) {
+        a.addEventListener('ended', () => { btn.classList.remove('speaking'); btn.innerHTML = '🔊 Hoor uitspraak'; });
+      }
+    });
+  }
+}
+
+function toggleTTS() {
+  ttsEnabled = !ttsEnabled;
+  const btn = document.getElementById('ttsToggle');
+  btn.className = 'tts-toggle' + (ttsEnabled ? ' active' : '');
+  btn.textContent = ttsEnabled ? '🔊 Stem aan' : '🔇 Stem uit';
+  if (!ttsEnabled && currentAudio) { currentAudio.pause(); currentAudio = null; }
+}
+
+
+// ===================== CHAT =====================
+const GROQ_KEY = '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';
+
+async function callGemini(messages, system, maxTokens = 1000) {
+  const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${GROQ_KEY}`
+    },
+    body: JSON.stringify({
+      model: 'llama-3.3-70b-versatile',
+      max_tokens: maxTokens,
+      messages: [
+        { role: 'system', content: system },
+        ...messages
+      ]
+    })
+  });
+  if (!response.ok) {
+    const err = await response.text();
+    throw new Error(`Groq fout ${response.status}: ${err}`);
+  }
+  const data = await response.json();
+  return data.choices?.[0]?.message?.content || 'Geen antwoord ontvangen.';
+}
+
+async function sendMessage(overrideMsg) {
+  const input = document.getElementById('chatInput');
+  const msg = overrideMsg || input.value.trim();
+  if (!msg || isLoading) return;
+
+  if (!overrideMsg) { input.value = ''; autoResize(input); }
+
+  addMessage('user', msg);
+  chatHistory.push({ role: 'user', content: msg });
+
+  isLoading = true;
+  document.getElementById('sendBtn').disabled = true;
+  showTyping();
+
+  try {
+    const reply = await callGemini(chatHistory, SYSTEM_PROMPT());
+    removeTyping();
+    addMessage('ai', reply, true);
+    chatHistory.push({ role: 'assistant', content: reply });
+    if (ttsEnabled) speakText(reply, 'nl-NL');
+  } catch (e) {
+    removeTyping();
+    addMessage('ai', '⚠️ Verbindingsfout: ' + e.message);
+  }
+
+  isLoading = false;
+  document.getElementById('sendBtn').disabled = false;
+}
+
+function addMessage(role, text, showSpeakBtn = false) {
+  const container = document.getElementById('chatMessages');
+  const div = document.createElement('div');
+  div.className = `message ${role}`;
+
+  const avatar = document.createElement('div');
+  avatar.className = `avatar ${role}`;
+  avatar.textContent = role === 'ai' ? '🎓' : '👤';
+
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble';
+  bubble.innerHTML = formatMessage(text);
+
+  // Add speak buttons for Spanish phrases in AI messages
+  if (role === 'ai') {
+    // Speak whole message button
+    const speakAll = document.createElement('button');
+    speakAll.className = 'speak-btn';
+    speakAll.innerHTML = '🔊 Hoor uitspraak (NL)';
+    speakAll.onclick = () => {
+      const isActive = speakAll.classList.contains('speaking');
+      if (isActive) { speechSynthesis.cancel(); speakAll.classList.remove('speaking'); speakAll.innerHTML = '🔊 Hoor uitspraak (NL)'; return; }
+      speakAll.classList.add('speaking');
+      speakAll.innerHTML = '⏹ Stop';
+      const utter = speakText(text, 'nl-NL');
+      if (utter) utter.onend = () => { speakAll.classList.remove('speaking'); speakAll.innerHTML = '🔊 Hoor uitspraak (NL)'; };
+    };
+    bubble.appendChild(speakAll);
+  }
+
+  div.appendChild(avatar);
+  div.appendChild(bubble);
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+}
+
+function formatMessage(text) {
+  // Bold
+  text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+  // Italic → Spaans stijl
+  text = text.replace(/\*(.*?)\*/g, '<span class="es">$1</span>');
+  // Newlines
+  text = text.replace(/\n/g, '<br>');
+  return text;
+}
+
+function showTyping() {
+  const container = document.getElementById('chatMessages');
+  const div = document.createElement('div');
+  div.className = 'message ai';
+  div.id = 'typingIndicator';
+
+  const avatar = document.createElement('div');
+  avatar.className = 'avatar ai';
+  avatar.textContent = '🎓';
+
+  const indicator = document.createElement('div');
+  indicator.className = 'typing-indicator';
+  indicator.innerHTML = '<span></span><span></span><span></span>';
+
+  div.appendChild(avatar);
+  div.appendChild(indicator);
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+}
+
+function removeTyping() {
+  const el = document.getElementById('typingIndicator');
+  if (el) el.remove();
+}
+
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+}
+
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+}
+
+function setMode(m) {
+  chatMode = m;
+  document.getElementById('modeES').classList.toggle('active', m === 'es');
+  document.getElementById('modeNL').classList.toggle('active', m === 'nl');
+  document.getElementById('chatInput').placeholder = m === 'es'
+    ? '¡Escribe en español! (Enter om te sturen)'
+    : 'Schrijf in het Nederlands... (Enter om te sturen)';
+}
+
+// ===================== EXERCISES =====================
+const exercises = {
+  mc: [
+    { q: 'Wat betekent "¿Cómo te llamas?"?', options: ['Hoe oud ben jij?', 'Hoe heet jij?', 'Waar woon jij?', 'Hoe gaat het?'], answer: 1, explain: '¡Correcto! "¿Cómo te llamas?" = "Hoe heet jij?" — letterlijk: "Hoe noem jij jezelf?"' },
+    { q: 'Welke zin betekent "Ik heb honger"?', options: ['Tengo sed', 'Tengo sueño', 'Tengo hambre', 'Tengo frío'], answer: 2, explain: '¡Muy bien! "Tengo hambre" = "Ik heb honger". Let op: in het Spaans gebruik je "tener" (hebben) voor lichamelijke gevoelens.' },
+    { q: 'Hoe zeg je "Goedemorgen" in het Spaans?', options: ['Buenas noches', 'Buenas tardes', 'Buenos días', 'Buenas'], answer: 2, explain: '¡Perfecto! "Buenos días" = Goedemorgen. "Tardes" = middag, "noches" = nacht.' },
+    { q: 'Wat is de meervoudsvorm van "el libro"?', options: ['los libro', 'las libros', 'los libros', 'el libros'], answer: 2, explain: '¡Excelente! "El libro" (het boek) → "los libros" (de boeken). Mannelijk meervoud: los + woord + s.' },
+    { q: 'Hoe zeg je "Ik spreek Spaans"?', options: ['Hablo español', 'Habla español', 'Hablas español', 'Hablamos español'], answer: 0, explain: '¡Correcto! "Hablo" = ik spreek (1e persoon enkelvoud van "hablar").' },
+  ],
+  fill: [
+    { q: 'Ik heet Maria: Me ___ María.', answer: 'llamo', hint: 'Denk aan "llamarse" = heten', explain: 'Me llamo María. "Llamarse" = heten/zichzelf noemen. Ik: me llamo, jij: te llamas, hij/zij: se llama.' },
+    { q: 'Zij heeft een auto: Ella ___ un coche.', answer: 'tiene', hint: '"Tener" = hebben — vervoeg voor ella', explain: '"Tener" (hebben) → Ella tiene = zij heeft. Conjugatie: tengo, tienes, tiene, tenemos, tenéis, tienen.' },
+    { q: 'Wij gaan naar school: Nosotros ___ a la escuela.', answer: 'vamos', hint: '"Ir" = gaan — vervoeg voor nosotros', explain: '"Ir" (gaan) is onregelmatig: voy, vas, va, vamos, vais, van. "Vamos" = wij gaan.' },
+    { q: 'Het boek is op tafel: El libro está ___ la mesa.', answer: 'en', hint: '"Op/in/aan" — een voorzetsel', explain: '"Estar en" = zijn op/in. "En" is het Spaanse voorzetsel voor locatie (op, in, aan).' },
+  ],
+  translate: [
+    { q: 'Mijn naam is Carlos en ik ben 25 jaar oud.', answer: 'Me llamo Carlos y tengo 25 años.', hint: 'Gebruik me llamo + y + tener + años', explain: 'Let op: in het Spaans gebruik je "tener años" (jaren hebben) voor leeftijd, niet "ser/estar".' },
+    { q: 'Ik woon in Amsterdam met mijn familie.', answer: 'Vivo en Ámsterdam con mi familia.', hint: 'vivir = wonen, con = met', explain: '"Vivir" = wonen. "Mi familia" = mijn familie. "Con" = met. Ámsterdam heeft een accent in het Spaans!' },
+    { q: 'Waar is het toilet?', answer: '¿Dónde está el baño?', hint: 'dónde = waar, estar voor locatie', explain: '"¿Dónde está...?" = Waar is...? Gebruik "estar" voor locaties, niet "ser". "El baño" = het toilet/de badkamer.' },
+  ],
+  conj: [
+    { q: 'Vervoeg "hablar" (praten) voor alle personen.', type: 'table', verb: 'hablar', forms: ['hablo','hablas','habla','hablamos','habláis','hablan'], pronouns: ['yo','tú','él/ella','nosotros','vosotros','ellos'], explain: 'Regelmatige -AR werkwoorden: verwijder -ar, voeg toe: -o, -as, -a, -amos, -áis, -an.' },
+    { q: 'Vervoeg "comer" (eten) voor alle personen.', type: 'table', verb: 'comer', forms: ['como','comes','come','comemos','coméis','comen'], pronouns: ['yo','tú','él/ella','nosotros','vosotros','ellos'], explain: 'Regelmatige -ER werkwoorden: verwijder -er, voeg toe: -o, -es, -e, -emos, -éis, -en.' },
+  ]
+};
+
+let currentEx = null;
+let exIndex = 0;
+let currentExType = '';
+
+function startExercise(type) {
+  currentExType = type;
+  exIndex = 0;
+  document.getElementById('exercisesHome').style.display = 'none';
+  document.getElementById('exerciseView').style.display = 'block';
+  renderExercise();
+}
+
+function renderExercise() {
+  const list = exercises[currentExType];
+  currentEx = list[exIndex % list.length];
+  const view = document.getElementById('exerciseView');
+
+  const typeLabels = { mc: 'Meerkeuze', fill: 'Aanvullen', translate: 'Vertalen', conj: 'Werkwoorden' };
+  const total = list.length;
+  const progress = ((exIndex % total) / total * 100);
+
+  let html = `
+    <button class="ex-back" onclick="backToExercises()">← Terug naar oefeningen</button>
+    <div style="color:var(--muted);font-size:0.8rem;margin-bottom:6px">${typeLabels[currentExType]} · Vraag ${(exIndex % total) + 1} van ${total}</div>
+    <div class="progress-bar"><div class="progress-fill" style="width:${progress}%"></div></div>
+    <div class="ex-question">${currentEx.q}</div>
+    <div class="ex-sub">💡 ${currentEx.hint || 'Denk goed na!'}</div>
+  `;
+
+  if (currentExType === 'mc') {
+    html += `<div class="ex-options">`;
+    currentEx.options.forEach((opt, i) => {
+      html += `<button class="ex-option" onclick="checkMC(${i}, this)">${opt}</button>`;
+    });
+    html += `</div>`;
+  } else if (currentExType === 'fill' || currentExType === 'translate') {
+    html += `
+      <input class="fill-input" type="text" id="fillInput" placeholder="Typ jouw antwoord..." onkeydown="if(event.key==='Enter') checkFill()">
+      <button class="check-btn" onclick="checkFill()">Controleer ✓</button>
+    `;
+  } else if (currentExType === 'conj') {
+    html += `<div style="font-size:0.85rem;color:var(--muted);margin-bottom:12px">Klik op een cel om het antwoord te zien</div>`;
+    html += `<table class="conj-table"><thead><tr><th>Persoon</th><th>Vervoeging</th></tr></thead><tbody>`;
+    currentEx.pronouns.forEach((p, i) => {
+      html += `<tr><td>${p}</td><td style="cursor:pointer" onclick="this.textContent='${currentEx.forms[i]}';this.style.color='var(--accent)'" data-ans="${currentEx.forms[i]}">Klik om te tonen</td></tr>`;
+    });
+    html += `</tbody></table>`;
+  }
+
+  html += `<div class="ex-feedback" id="exFeedback"></div>`;
+  html += `<button class="ex-next" id="exNext" onclick="nextExercise()">Volgende vraag →</button>`;
+
+  view.innerHTML = html;
+}
+
+function checkMC(chosen, btn) {
+  const allBtns = document.querySelectorAll('.ex-option');
+  allBtns.forEach(b => b.disabled = true);
+  const correct = currentEx.answer === chosen;
+  btn.classList.add(correct ? 'correct' : 'wrong');
+  if (!correct) allBtns[currentEx.answer].classList.add('correct');
+  showFeedback(correct, currentEx.explain);
+}
+
+function checkFill() {
+  const input = document.getElementById('fillInput');
+  const val = input.value.trim().toLowerCase();
+  const ans = currentEx.answer.toLowerCase();
+  const correct = val === ans || val.replace(/[áéíóú]/g, c => ({á:'a',é:'e',í:'i',ó:'o',ú:'u'}[c])) === ans.replace(/[áéíóú]/g, c => ({á:'a',é:'e',í:'i',ó:'o',ú:'u'}[c]));
+  input.disabled = true;
+  if (!correct) input.style.borderColor = 'var(--accent2)';
+  showFeedback(correct, `${correct ? '✅ Juist!' : `❌ Het goede antwoord is: <strong style="color:var(--accent)">${currentEx.answer}</strong>`}<br>${currentEx.explain}`);
+}
+
+function showFeedback(correct, text) {
+  const fb = document.getElementById('exFeedback');
+  fb.className = `ex-feedback ${correct ? 'correct' : 'wrong'}`;
+  fb.innerHTML = (correct ? '✅ ' : '❌ ') + text;
+  fb.style.display = 'block';
+  document.getElementById('exNext').style.display = 'inline-block';
+
+  // Spreek de Spaanse zin uit na een korte pauze
+  const spanishText = currentEx.q.match(/["„"](.*?)[""]/) 
+    ? currentEx.q.match(/["„"](.*?)[""]/)[1]  // citaat in vraag
+    : currentEx.es || currentEx.answer || '';
+  
+  // Bepaal wat we uitspreken
+  let toSpeak = '';
+  if (currentExType === 'mc' || currentExType === 'fill') {
+    // Spreek het juiste Spaanse antwoord uit
+    toSpeak = currentEx.options ? currentEx.options[currentEx.answer] : currentEx.answer;
+  } else if (currentExType === 'translate') {
+    toSpeak = currentEx.answer;
+  }
+
+  if (toSpeak) {
+    setTimeout(() => {
+      const voices = speechSynthesis.getVoices();
+      const esVoice = voices.find(v => v.lang.startsWith('es'));
+      const utter = new SpeechSynthesisUtterance(toSpeak);
+      utter.lang = 'es-ES';
+      utter.rate = 0.85;
+      if (esVoice) utter.voice = esVoice;
+      speechSynthesis.cancel();
+      speechSynthesis.speak(utter);
+    }, 400);
+  }
+}
+
+function nextExercise() {
+  exIndex++;
+  renderExercise();
+}
+
+function backToExercises() {
+  document.getElementById('exercisesHome').style.display = 'block';
+  document.getElementById('exerciseView').style.display = 'none';
+}
+
+// ===================== VOCABULARY =====================
+const vocab = [
+  { es: 'el agua', nl: 'het water', cat: 'zelfstandig naamwoord', ex: '¿Puedes traerme agua? — Kun je water voor me halen?' },
+  { es: 'comer', nl: 'eten', cat: 'werkwoord', ex: 'Quiero comer pizza. — Ik wil pizza eten.' },
+  { es: 'hablar', nl: 'praten / spreken', cat: 'werkwoord', ex: 'Hablo español un poco. — Ik spreek een beetje Spaans.' },
+  { es: 'la casa', nl: 'het huis', cat: 'zelfstandig naamwoord', ex: 'Mi casa es grande. — Mijn huis is groot.' },
+  { es: 'el trabajo', nl: 'het werk / de baan', cat: 'zelfstandig naamwoord', ex: 'Voy al trabajo. — Ik ga naar het werk.' },
+  { es: 'grande', nl: 'groot', cat: 'bijvoeglijk naamwoord', ex: 'El perro es muy grande. — De hond is erg groot.' },
+  { es: 'pequeño/a', nl: 'klein', cat: 'bijvoeglijk naamwoord', ex: 'Es una ciudad pequeña. — Het is een kleine stad.' },
+  { es: 'querer', nl: 'willen / houden van', cat: 'werkwoord', ex: 'Quiero café. — Ik wil koffie.' },
+  { es: 'hoy', nl: 'vandaag', cat: 'bijwoord', ex: 'Hoy hace calor. — Vandaag is het warm.' },
+  { es: 'mañana', nl: 'morgen / ochtend', cat: 'bijwoord', ex: 'Hasta mañana. — Tot morgen.' },
+  { es: 'el amigo', nl: 'de vriend', cat: 'zelfstandig naamwoord', ex: 'Es mi mejor amigo. — Hij is mijn beste vriend.' },
+  { es: 'bonito/a', nl: 'mooi', cat: 'bijvoeglijk naamwoord', ex: 'Qué bonito! — Wat mooi!' },
+  { es: 'mucho', nl: 'veel', cat: 'bijwoord', ex: 'Gracias mucho. — Heel erg bedankt.' },
+  { es: 'saber', nl: 'weten / kunnen', cat: 'werkwoord', ex: 'No sé. — Ik weet het niet.' },
+  { es: 'poder', nl: 'kunnen (mogen/in staat zijn)', cat: 'werkwoord', ex: '¿Puedo ayudarte? — Kan ik je helpen?' },
+  { es: 'ahora', nl: 'nu', cat: 'bijwoord', ex: '¿Qué haces ahora? — Wat doe je nu?' },
+];
+
+function speakES(text, e) {
+  if (e) e.stopPropagation();
+  speechSynthesis.cancel();
+  const voices = speechSynthesis.getVoices();
+  const esVoice = voices.find(v => v.lang.startsWith('es'));
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.lang = 'es-ES';
+  utter.rate = 0.82;
+  if (esVoice) utter.voice = esVoice;
+  speechSynthesis.speak(utter);
+}
+
+function renderVocab(filter = '') {
+  const grid = document.getElementById('vocabGrid');
+  const filtered = filter ? vocab.filter(v => v.es.includes(filter.toLowerCase()) || v.nl.includes(filter.toLowerCase())) : vocab;
+  grid.innerHTML = filtered.map(v => `
+    <div class="vocab-card" onclick="flipVocab(this, '${v.es.replace(/'/g,"\\'")}')">
+      <div class="vocab-front">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+          <div class="vocab-es">${v.es}</div>
+          <button onclick="speakES('${v.es.replace(/'/g,"\\'")}', event)" style="background:none;border:1px solid var(--border);border-radius:6px;padding:2px 7px;color:var(--muted);cursor:pointer;font-size:0.8rem;flex-shrink:0" title="Hoor uitspraak">🔊</button>
+        </div>
+        <div class="vocab-cat">${v.cat}</div>
+        <div class="vocab-ex">${v.ex.split(' — ')[0]}</div>
+      </div>
+      <div class="vocab-back">
+        <div class="vocab-nl">🇳🇱 ${v.nl}</div>
+        <div class="vocab-ex">📝 ${v.ex.split(' — ')[1] || ''}</div>
+        <button onclick="speakES('${v.ex.split(' — ')[0].replace(/'/g,"\\'")}', event)" style="background:none;border:1px solid var(--border);border-radius:6px;padding:3px 10px;color:var(--success);cursor:pointer;font-size:0.78rem;margin-top:8px" title="Hoor voorbeeldzin">🔊 Hoor zin</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function flipVocab(card, esText) {
+  const wasFlipped = card.classList.contains('flipped');
+  card.classList.toggle('flipped');
+  // Spreek uit bij omdraaien naar voorkant
+  if (!wasFlipped) {
+    setTimeout(() => speakES(esText), 150);
+  }
+}
+
+// ===================== GRAMMAR =====================
+const grammarTopics = [
+  {
+    title: 'Ser vs. Estar — beide betekenen "zijn"',
+    badge: 'Essentieel',
+    body: `<p>Spaans heeft twee werkwoorden voor "zijn": <strong style="color:var(--accent)">ser</strong> voor permanente eigenschappen en <strong style="color:var(--accent)">estar</strong> voor tijdelijke staten en locaties.</p>
+    <table class="conj-table">
+      <thead><tr><th>SER (permanent)</th><th>ESTAR (tijdelijk/locatie)</th></tr></thead>
+      <tbody>
+        <tr><td>Ik ben dokter</td><td>Soy médico</td></tr>
+        <tr><td>Ik ben ziek (nu)</td><td>Estoy enfermo</td></tr>
+        <tr><td>Het is groot</td><td>Es grande</td></tr>
+        <tr><td>Het is hier</td><td>Está aquí</td></tr>
+      </tbody>
+    </table>
+    <div class="grammar-example"><span class="es">Soy español — Yo estoy en España.</span><span class="nl">Ik ben Spanjaard — Ik ben in Spanje.</span></div>`
+  },
+  {
+    title: 'Lidwoorden: el, la, los, las',
+    badge: 'Basis',
+    body: `<p>Elk zelfstandig naamwoord in het Spaans heeft een geslacht (mannelijk of vrouwelijk). Het lidwoord past zich aan.</p>
+    <table class="conj-table">
+      <thead><tr><th>Geslacht</th><th>Enkelvoud</th><th>Meervoud</th></tr></thead>
+      <tbody>
+        <tr><td>Mannelijk</td><td>el libro (het boek)</td><td>los libros</td></tr>
+        <tr><td>Vrouwelijk</td><td>la mesa (de tafel)</td><td>las mesas</td></tr>
+        <tr><td>Onbepaald ♂</td><td>un hombre</td><td>unos hombres</td></tr>
+        <tr><td>Onbepaald ♀</td><td>una mujer</td><td>unas mujeres</td></tr>
+      </tbody>
+    </table>
+    <div class="grammar-example"><span class="es">El perro come la manzana.</span><span class="nl">De hond eet de appel.</span></div>`
+  },
+  {
+    title: 'Presente indicativo — tegenwoordige tijd',
+    badge: 'Essentieel',
+    body: `<p>Regelmatige werkwoorden volgen vaste patronen op basis van de uitgang (-ar, -er, -ir).</p>
+    <table class="conj-table">
+      <thead><tr><th>Persoon</th><th>-AR (hablar)</th><th>-ER (comer)</th><th>-IR (vivir)</th></tr></thead>
+      <tbody>
+        <tr><td>yo</td><td>hablo</td><td>como</td><td>vivo</td></tr>
+        <tr><td>tú</td><td>hablas</td><td>comes</td><td>vives</td></tr>
+        <tr><td>él/ella</td><td>habla</td><td>come</td><td>vive</td></tr>
+        <tr><td>nosotros</td><td>hablamos</td><td>comemos</td><td>vivimos</td></tr>
+        <tr><td>vosotros</td><td>habláis</td><td>coméis</td><td>vivís</td></tr>
+        <tr><td>ellos</td><td>hablan</td><td>comen</td><td>viven</td></tr>
+      </tbody>
+    </table>`
+  },
+  {
+    title: 'Vragen stellen — ¿Preguntas?',
+    badge: 'Communicatie',
+    body: `<p>In het Spaans gebruik je vraagtekens voor én na een vraagzin. Hier zijn de meest gebruikte vraagwoorden.</p>
+    <table class="conj-table">
+      <thead><tr><th>Spaans</th><th>Nederlands</th></tr></thead>
+      <tbody>
+        <tr><td>¿Qué?</td><td>Wat?</td></tr>
+        <tr><td>¿Quién?</td><td>Wie?</td></tr>
+        <tr><td>¿Dónde?</td><td>Waar?</td></tr>
+        <tr><td>¿Cuándo?</td><td>Wanneer?</td></tr>
+        <tr><td>¿Por qué?</td><td>Waarom?</td></tr>
+        <tr><td>¿Cómo?</td><td>Hoe?</td></tr>
+        <tr><td>¿Cuánto/a?</td><td>Hoeveel?</td></tr>
+      </tbody>
+    </table>
+    <div class="grammar-example"><span class="es">¿Dónde está el baño?</span><span class="nl">Waar is het toilet?</span></div>
+    <div class="grammar-example"><span class="es">¿Cuánto cuesta esto?</span><span class="nl">Hoeveel kost dit?</span></div>`
+  },
+  {
+    title: 'Getallen 1–100',
+    badge: 'Woordenschat',
+    body: `<p>De basisgetallen in het Spaans — erg belangrijk voor prijzen, leeftijden en tijden!</p>
+    <table class="conj-table">
+      <thead><tr><th>Getal</th><th>Spaans</th><th>Getal</th><th>Spaans</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>uno</td><td>11</td><td>once</td></tr>
+        <tr><td>2</td><td>dos</td><td>12</td><td>doce</td></tr>
+        <tr><td>3</td><td>tres</td><td>20</td><td>veinte</td></tr>
+        <tr><td>4</td><td>cuatro</td><td>30</td><td>treinta</td></tr>
+        <tr><td>5</td><td>cinco</td><td>40</td><td>cuarenta</td></tr>
+        <tr><td>6</td><td>seis</td><td>50</td><td>cincuenta</td></tr>
+        <tr><td>7</td><td>siete</td><td>60</td><td>sesenta</td></tr>
+        <tr><td>8</td><td>ocho</td><td>70</td><td>setenta</td></tr>
+        <tr><td>9</td><td>nueve</td><td>80</td><td>ochenta</td></tr>
+        <tr><td>10</td><td>diez</td><td>100</td><td>cien</td></tr>
+      </tbody>
+    </table>`
+  }
+];
+
+function renderGrammar() {
+  const container = document.getElementById('grammarContent');
+  container.innerHTML = grammarTopics.map((t, i) => `
+    <div class="grammar-topic" id="gt${i}">
+      <div class="grammar-topic-header" onclick="toggleGrammar(${i})">
+        <div>
+          <div class="grammar-topic-title">${t.title}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span class="grammar-topic-badge">${t.badge}</span>
+          <span class="grammar-arrow">▼</span>
+        </div>
+      </div>
+      <div class="grammar-body">${t.body}</div>
+    </div>
+  `).join('');
+
+  // Voeg 🔊 knoppen toe aan alle .grammar-example spans
+  container.querySelectorAll('.grammar-example').forEach(el => {
+    const esSpan = el.querySelector('.es');
+    if (!esSpan) return;
+    const esText = esSpan.textContent.split(' — ')[0].trim();
+    const btn = document.createElement('button');
+    btn.innerHTML = '🔊';
+    btn.title = 'Hoor uitspraak';
+    btn.style.cssText = 'background:none;border:1px solid var(--border);border-radius:6px;padding:2px 8px;color:var(--muted);cursor:pointer;font-size:0.8rem;margin-left:8px;vertical-align:middle;';
+    btn.onclick = (e) => { e.stopPropagation(); speakES(esText); };
+    esSpan.appendChild(btn);
+  });
+
+  // Voeg 🔊 toe aan tabelcellen met Spaanse woorden in de vervoegtabellen
+  container.querySelectorAll('.conj-table td:last-child, .conj-table td:nth-child(2)').forEach(td => {
+    const text = td.textContent.trim();
+    if (!text || text.length < 2) return;
+    td.style.cursor = 'pointer';
+    td.title = 'Klik om te horen';
+    td.onclick = () => speakES(text);
+  });
+}
+
+function toggleGrammar(i) {
+  document.getElementById('gt' + i).classList.toggle('open');
+}
+
+// ===================== TABS =====================
+function switchTab(tab) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('panel-' + tab).classList.add('active');
+  document.getElementById('tab-' + tab).classList.add('active');
+}
+
+// ===================== LEVEL =====================
+function openModal() { document.getElementById('levelModal').classList.add('open'); }
+function closeModal() { document.getElementById('levelModal').classList.remove('open'); }
+
+function setLevel(lvl, btn) {
+  userLevel = lvl;
+  document.getElementById('levelBadge').textContent = `Niveau: ${lvl} ${lvl === 'A1' ? 'Beginner' : lvl === 'A2' ? 'Elementair' : lvl === 'B1' ? 'Gemiddeld' : 'Gevorderd'} ▾`;
+  document.querySelectorAll('.level-opt').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+}
+
+// ===================== VOICE MODE =====================
+function openVoiceMode() {
+  document.getElementById('voiceOverlay').classList.add('open');
+  initRecognition();
+}
+
+function closeVoiceMode() {
+  document.getElementById('voiceOverlay').classList.remove('open');
+  stopListening();
+}
+
+function initRecognition() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    document.getElementById('voiceStatus').textContent = '⚠️ Spraakherkenning niet ondersteund in deze browser. Gebruik Chrome.';
+    document.getElementById('voiceCircle').style.opacity = '0.4';
+    return;
+  }
+
+  recognition = new SpeechRecognition();
+  recognition.continuous = false;
+  recognition.interimResults = true;
+  recognition.lang = chatMode === 'es' ? 'es-ES' : 'nl-NL';
+
+  recognition.onstart = () => {
+    isListening = true;
+    document.getElementById('voiceCircle').textContent = '🎤';
+    document.getElementById('voiceCircle').classList.add('listening');
+    document.getElementById('voiceWave').classList.remove('hidden');
+    document.getElementById('voiceStatus').textContent = 'Luisteren... spreek nu';
+    document.getElementById('voiceTranscript').textContent = '';
+    document.getElementById('voiceTranscript').classList.add('active');
+  };
+
+  recognition.onresult = (e) => {
+    let interim = '';
+    let final = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      if (e.results[i].isFinal) final += e.results[i][0].transcript;
+      else interim += e.results[i][0].transcript;
+    }
+    document.getElementById('voiceTranscript').textContent = final || interim;
+    if (final) handleVoiceInput(final.trim());
+  };
+
+  recognition.onerror = (e) => {
+    stopListening();
+    const msgs = { 'not-allowed': '🚫 Microfoon toegang geweigerd. Sta toegang toe in je browser.', 'no-speech': '🤔 Geen spraak gedetecteerd. Probeer opnieuw.', 'network': '🌐 Netwerkfout bij spraakherkenning.' };
+    document.getElementById('voiceStatus').textContent = msgs[e.error] || `Fout: ${e.error}`;
+  };
+
+  recognition.onend = () => {
+    if (isListening) stopListening();
+  };
+}
+
+function toggleListening() {
+  if (!recognition) { initRecognition(); if (!recognition) return; }
+  if (isListening) stopListening();
+  else startListening();
+}
+
+function startListening() {
+  if (!recognition) return;
+  recognition.lang = chatMode === 'es' ? 'es-ES' : 'nl-NL';
+  try { recognition.start(); }
+  catch(e) { initRecognition(); recognition.start(); }
+}
+
+function stopListening() {
+  isListening = false;
+  if (recognition) { try { recognition.stop(); } catch(e) {} }
+  document.getElementById('voiceCircle').textContent = '🎙️';
+  document.getElementById('voiceCircle').classList.remove('listening');
+  document.getElementById('voiceWave').classList.add('hidden');
+  document.getElementById('voiceStatus').textContent = 'Klik op de microfoon om te beginnen';
+  document.getElementById('voiceTranscript').classList.remove('active');
+}
+
+async function handleVoiceInput(text) {
+  stopListening();
+  document.getElementById('voiceStatus').textContent = '⏳ ProfesorIA denkt na...';
+  document.getElementById('voiceTranscript').textContent = `Jij: "${text}"`;
+  document.getElementById('voiceTranscript').classList.remove('active');
+
+  addMessage('user', text);
+  chatHistory.push({ role: 'user', content: text });
+
+  let reply = null;
+
+  try {
+    const voiceSystem = SYSTEM_PROMPT() + '\n\nDe gebruiker spreekt via de microfoon. Houd je antwoord kort en conversationeel (max 2-3 zinnen) want het wordt voorgelezen.';
+    reply = await callGemini(chatHistory, voiceSystem, 400);
+  } catch(e) {
+    console.error('Voice API error:', e);
+    document.getElementById('voiceCircle').textContent = '🎙️';
+    document.getElementById('voiceCircle').classList.remove('speaking-anim', 'listening');
+    document.getElementById('voiceStatus').textContent = 'Klik op de microfoon om te beginnen';
+    document.getElementById('voiceTranscript').textContent = '';
+    const errMsg = '⚠️ ' + (e.message.includes('fetch') ? 'Geen internetverbinding.' : e.message.slice(0, 100));
+    addMessage('ai', errMsg);
+    chatHistory.push({ role: 'assistant', content: errMsg });
+    setTimeout(() => closeVoiceMode(), 1500);
+    return;
+  }
+
+  // Succes — toon antwoord
+  chatHistory.push({ role: 'assistant', content: reply });
+  addMessage('ai', reply, true);
+
+  document.getElementById('voiceStatus').textContent = '🔊 ProfesorIA spreekt...';
+  document.getElementById('voiceCircle').textContent = '🔊';
+  document.getElementById('voiceCircle').classList.add('speaking-anim');
+
+  const clean = reply.replace(/<[^>]+>/g, '').replace(/&[a-z]+;/g, ' ');
+  document.getElementById('voiceTranscript').textContent = clean.slice(0, 140) + (clean.length > 140 ? '...' : '');
+
+  const utter = speakText(reply, 'nl-NL');
+  const resetVoice = () => {
+    document.getElementById('voiceCircle').textContent = '🎙️';
+    document.getElementById('voiceCircle').classList.remove('speaking-anim');
+    document.getElementById('voiceStatus').textContent = 'Klik om te antwoorden';
+    document.getElementById('voiceTranscript').textContent = '';
+  };
+  if (utter) utter.onend = resetVoice;
+  else resetVoice();
+}
+
+// ===================== READER =====================
+const books = [
+  {
+    id: 1, level: 'A1', emoji: '🐕', color: '#2a1f0e',
+    title: 'Mi perro Coco', titleNl: 'Mijn hond Coco',
+    sentences: [
+      { es: 'Tengo un perro. Se llama Coco.', nl: 'Ik heb een hond. Hij heet Coco.' },
+      { es: 'Coco es pequeño y marrón.', nl: 'Coco is klein en bruin.' },
+      { es: 'Cada mañana, Coco y yo vamos al parque.', nl: 'Elke ochtend gaan Coco en ik naar het park.' },
+      { es: 'A Coco le gusta correr y jugar con la pelota.', nl: 'Coco vindt het leuk om te rennen en met de bal te spelen.' },
+      { es: 'Por la tarde, Coco duerme en su cama.', nl: 'In de middag slaapt Coco in zijn mand.' },
+      { es: 'Coco come dos veces al día.', nl: 'Coco eet twee keer per dag.' },
+      { es: 'Por la noche, Coco duerme en mi cuarto.', nl: '\'s Avonds slaapt Coco in mijn kamer.' },
+      { es: 'Quiero mucho a mi perro Coco.', nl: 'Ik hou heel veel van mijn hond Coco.' },
+    ]
+  },
+  {
+    id: 2, level: 'A1', emoji: '☀️', color: '#1a2210',
+    title: 'Un día normal', titleNl: 'Een gewone dag',
+    sentences: [
+      { es: 'Me llamo Ana. Tengo veinte años.', nl: 'Ik heet Ana. Ik ben twintig jaar oud.' },
+      { es: 'Me levanto a las siete de la mañana.', nl: 'Ik sta op om zeven uur \'s ochtends.' },
+      { es: 'Primero me ducho y luego desayuno.', nl: 'Eerst douche ik en daarna ontbijt ik.' },
+      { es: 'Desayuno café con leche y tostadas.', nl: 'Ik ontbijt met koffie met melk en toast.' },
+      { es: 'A las ocho voy al trabajo en autobús.', nl: 'Om acht uur ga ik met de bus naar het werk.' },
+      { es: 'Trabajo en una oficina en el centro de la ciudad.', nl: 'Ik werk op een kantoor in het stadscentrum.' },
+      { es: 'Al mediodía como con mis compañeros.', nl: 'In de middag eet ik met mijn collega\'s.' },
+      { es: 'Por la tarde, leo un libro o veo la televisión.', nl: '\'s Middags lees ik een boek of kijk ik televisie.' },
+      { es: 'Me acuesto a las once de la noche.', nl: 'Ik ga om elf uur \'s avonds naar bed.' },
+    ]
+  },
+  {
+    id: 3, level: 'A2', emoji: '🛒', color: '#0e1a2a',
+    title: 'En el mercado', titleNl: 'Op de markt',
+    sentences: [
+      { es: 'Los sábados voy al mercado con mi madre.', nl: 'Op zaterdag ga ik met mijn moeder naar de markt.' },
+      { es: 'El mercado está lleno de colores y olores.', nl: 'De markt zit vol met kleuren en geuren.' },
+      { es: '—Buenos días, ¿qué desea? —pregunta el vendedor.', nl: '—Goedemorgen, wat wenst u? —vraagt de verkoper.' },
+      { es: '—Quiero un kilo de tomates y medio kilo de queso, por favor.', nl: '—Ik wil een kilo tomaten en een halve kilo kaas, alsjeblieft.' },
+      { es: '—¿Algo más? —Sí, también dos aguacates.', nl: '—Nog iets anders? —Ja, ook twee avocado\'s.' },
+      { es: '—¿Cuánto es todo? —Son siete euros con cincuenta.', nl: '—Hoeveel is het allemaal? —Dat is zeven euro vijftig.' },
+      { es: 'Mi madre paga y el vendedor nos da las gracias.', nl: 'Mijn moeder betaalt en de verkoper bedankt ons.' },
+      { es: 'Después tomamos un café en la terraza del bar.', nl: 'Daarna drinken we een koffie op het terras van het café.' },
+      { es: 'El mercado es mi lugar favorito del barrio.', nl: 'De markt is mijn favoriete plek in de buurt.' },
+    ]
+  },
+  {
+    id: 4, level: 'A2', emoji: '🏖️', color: '#0e1e2e',
+    title: 'Las vacaciones', titleNl: 'De vakantie',
+    sentences: [
+      { es: 'Este verano fui a la playa con mis amigos.', nl: 'Deze zomer ging ik met mijn vrienden naar het strand.' },
+      { es: 'Viajamos en coche desde Madrid hasta Valencia.', nl: 'We reisden met de auto van Madrid naar Valencia.' },
+      { es: 'El viaje duró casi cuatro horas.', nl: 'De reis duurde bijna vier uur.' },
+      { es: 'El apartamento estaba muy cerca del mar.', nl: 'Het appartement was heel dicht bij de zee.' },
+      { es: 'Todos los días nadábamos y tomábamos el sol.', nl: 'Elke dag zwommen we en lagen we in de zon.' },
+      { es: 'Por las noches salíamos a cenar en los restaurantes del puerto.', nl: '\'s Avonds gingen we uit eten in de restaurants van de haven.' },
+      { es: 'Comimos paella, gambas y mucho helado.', nl: 'We aten paella, garnalen en veel ijs.' },
+      { es: 'Fue una semana increíble. ¡Quiero volver pronto!', nl: 'Het was een ongelooflijke week. Ik wil snel terugkomen!' },
+    ]
+  },
+  {
+    id: 5, level: 'B1', emoji: '🎭', color: '#1e0e2a',
+    title: 'El teatro', titleNl: 'Het theater',
+    sentences: [
+      { es: 'Desde pequeño, me ha fascinado el teatro.', nl: 'Vanaf mijn jeugd heeft het theater me gefascineerd.' },
+      { es: 'Hay algo mágico en ver a actores cobrar vida en el escenario.', nl: 'Er is iets magisch aan acteurs die tot leven komen op het podium.' },
+      { es: 'El mes pasado fui a ver una obra de Lorca en el Teatro Nacional.', nl: 'Vorige maand ging ik een stuk van Lorca zien in het Nationaal Theater.' },
+      { es: 'La obra se llamaba "La casa de Bernarda Alba".', nl: 'Het stuk heette "Het huis van Bernarda Alba".' },
+      { es: 'Los actores interpretaron sus papeles con una intensidad increíble.', nl: 'De acteurs speelden hun rollen met een ongelooflijke intensiteit.' },
+      { es: 'Al final, el público se puso de pie para aplaudir.', nl: 'Aan het einde stond het publiek op om te applaudisseren.' },
+      { es: 'Salí del teatro con una mezcla de tristeza y admiración.', nl: 'Ik verliet het theater met een mengeling van verdriet en bewondering.' },
+      { es: 'El teatro nos enseña a entender mejor las emociones humanas.', nl: 'Theater leert ons menselijke emoties beter te begrijpen.' },
+    ]
+  },
+  {
+    id: 6, level: 'B1', emoji: '🍳', color: '#1a1208',
+    title: 'La receta de la abuela', titleNl: 'Het recept van oma',
+    sentences: [
+      { es: 'Mi abuela hace la mejor tortilla española del mundo.', nl: 'Mijn oma maakt de beste Spaanse tortilla ter wereld.' },
+      { es: 'Cuando era niño, me quedaba en su cocina para aprender su secreto.', nl: 'Als kind bleef ik in haar keuken om haar geheim te leren.' },
+      { es: 'El secreto, según ella, está en la paciencia y en el aceite de oliva.', nl: 'Het geheim, volgens haar, zit in het geduld en de olijfolie.' },
+      { es: 'Primero hay que cortar las patatas muy finas y freírlas lentamente.', nl: 'Eerst moet je de aardappelen heel dun snijden en ze langzaam bakken.' },
+      { es: 'Luego se baten los huevos con sal y se mezclan con las patatas.', nl: 'Daarna klop je de eieren met zout en meng je ze met de aardappelen.' },
+      { es: 'La clave es dar la vuelta a la tortilla sin que se rompa.', nl: 'De sleutel is de tortilla omdraaien zonder dat hij breekt.' },
+      { es: 'Mi abuela lo hace con una elegancia que yo nunca he logrado.', nl: 'Mijn oma doet het met een elegantie die ik nooit heb bereikt.' },
+      { es: 'Aunque intento copiar su receta, la mía nunca sabe igual.', nl: 'Hoewel ik haar recept probeer na te maken, smaakt de mijne nooit hetzelfde.' },
+      { es: 'Quizás el ingrediente secreto es simplemente el amor de una abuela.', nl: 'Misschien is het geheime ingrediënt gewoon de liefde van een oma.' },
+    ]
+  },
+];
+
+let currentBook = null;
+let currentSentenceIdx = 0;
+let isAutoPlaying = false;
+let showTranslation = false;
+let readSpeed = 0.85;
+let autoPlayTimeout = null;
+
+function renderBookGrid() {
+  const grid = document.getElementById('bookGrid');
+  const levelColors = { A1: '#5fad7e', A2: '#e8a045', B1: '#c95f3a' };
+  grid.innerHTML = books.map(b => `
+    <div class="book-card" onclick="openBook(${b.id})">
+      <div class="book-cover" style="background:${b.color}">${b.emoji}
+        <span class="book-level-tag" style="color:${levelColors[b.level]}">${b.level}</span>
+      </div>
+      <div class="book-info">
+        <div class="book-title">${b.title}</div>
+        <div class="book-title-nl">${b.titleNl}</div>
+        <div class="book-meta">
+          <span>📄 ${b.sentences.length} zinnen</span>
+          <span>🎧 Audio</span>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function openBook(id) {
+  currentBook = books.find(b => b.id === id);
+  currentSentenceIdx = 0;
+  isAutoPlaying = false;
+  showTranslation = false;
+  document.getElementById('readerHome').style.display = 'none';
+  document.getElementById('readerView').style.display = 'flex';
+  renderReaderView();
+}
+
+function closeBook() {
+  stopAutoPlay();
+  speechSynthesis.cancel();
+  currentBook = null;
+  document.getElementById('readerHome').style.display = 'block';
+  document.getElementById('readerView').style.display = 'none';
+}
+
+function renderReaderView() {
+  if (!currentBook) return;
+  const b = currentBook;
+  const progress = Math.round((currentSentenceIdx / b.sentences.length) * 100);
+
+  const html = `
+    <div class="reader-topbar">
+      <button class="reader-back" onclick="closeBook()">← Boekjes</button>
+      <div class="reader-title-bar">
+        <h3>${b.emoji} ${b.title}</h3>
+        <span>${b.titleNl} · Niveau ${b.level}</span>
+      </div>
+      <div class="reader-controls">
+        <button class="rc-btn ${showTranslation ? 'active' : ''}" onclick="toggleTranslation()">🇳🇱 Vertaling</button>
+      </div>
+    </div>
+
+    <div class="reader-body">
+      <div class="reader-progress">
+        <div class="reader-progress-fill" id="readerProgressFill" style="width:${progress}%"></div>
+      </div>
+
+      <div id="sentenceList">
+        ${b.sentences.map((s, i) => `
+          <div class="sentence-block ${i < currentSentenceIdx ? 'read' : ''} ${i === currentSentenceIdx ? 'playing' : ''}"
+               id="sblock-${i}" onclick="playSentence(${i})">
+            <div class="sentence-num">${i + 1}</div>
+            <div class="sentence-content">
+              <div class="sentence-es">${s.es}</div>
+              <div class="sentence-nl ${showTranslation ? 'visible' : ''}" id="snl-${i}">${s.nl}</div>
+            </div>
+            <button class="sentence-play" onclick="event.stopPropagation();playSentence(${i})" title="Hoor uitspraak">
+              ${i === currentSentenceIdx ? '🔊' : '▶'}
+            </button>
+          </div>
+        `).join('')}
+      </div>
+
+      <div class="reader-done" id="readerDone" style="display:${currentSentenceIdx >= b.sentences.length ? 'block' : 'none'}">
+        <div class="big">🎉</div>
+        <p>¡Felicidades! Je hebt het hele verhaaltje gelezen!</p>
+        <button onclick="closeBook()">← Kies een ander boekje</button>
+      </div>
+    </div>
+
+    <div class="autoplay-bar">
+      <button class="ap-btn" id="apBtn" onclick="toggleAutoPlay()">▶ Automatisch afspelen</button>
+      <select class="speed-select" onchange="readSpeed=parseFloat(this.value)" title="Leessnelheid">
+        <option value="0.6">🐢 Langzaam</option>
+        <option value="0.85" selected>🚶 Normaal</option>
+        <option value="1.1">🚀 Snel</option>
+      </select>
+      <span style="color:var(--muted);font-size:0.78rem;">${currentSentenceIdx}/${b.sentences.length} zinnen</span>
+    </div>
+  `;
+  document.getElementById('readerView').innerHTML = html;
+
+  // Scroll to current sentence
+  setTimeout(() => {
+    const el = document.getElementById(`sblock-${currentSentenceIdx}`);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, 100);
+}
+
+function toggleTranslation() {
+  showTranslation = !showTranslation;
+  // Toggle all nl divs
+  document.querySelectorAll('.sentence-nl').forEach(el => {
+    el.classList.toggle('visible', showTranslation);
+  });
+  // Update button
+  document.querySelectorAll('.rc-btn').forEach(btn => {
+    if (btn.textContent.includes('Vertaling')) btn.classList.toggle('active', showTranslation);
+  });
+}
+
+function playSentence(idx) {
+  if (!currentBook) return;
+  speechSynthesis.cancel();
+  currentSentenceIdx = idx;
+
+  // Update UI
+  document.querySelectorAll('.sentence-block').forEach((el, i) => {
+    el.classList.toggle('playing', i === idx);
+    el.classList.toggle('read', i < idx);
+    const playBtn = el.querySelector('.sentence-play');
+    if (playBtn) playBtn.textContent = i === idx ? '🔊' : '▶';
+  });
+
+  // Update progress
+  const prog = Math.round((idx / currentBook.sentences.length) * 100);
+  const pf = document.getElementById('readerProgressFill');
+  if (pf) pf.style.width = prog + '%';
+
+  // Update count
+  document.querySelectorAll('.autoplay-bar span').forEach(el => {
+    el.textContent = `${idx}/${currentBook.sentences.length} zinnen`;
+  });
+
+  // Scroll into view
+  const el = document.getElementById(`sblock-${idx}`);
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+  // Show translation for current
+  const nlEl = document.getElementById(`snl-${idx}`);
+  if (nlEl && showTranslation) nlEl.classList.add('visible');
+
+  // Speak it
+  const sentence = currentBook.sentences[idx];
+  const voices = speechSynthesis.getVoices();
+  const esVoice = voices.find(v => v.lang.startsWith('es'));
+  const utter = new SpeechSynthesisUtterance(sentence.es);
+  utter.lang = 'es-ES';
+  utter.rate = readSpeed;
+  if (esVoice) utter.voice = esVoice;
+
+  utter.onend = () => {
+    if (isAutoPlaying) {
+      if (idx + 1 < currentBook.sentences.length) {
+        autoPlayTimeout = setTimeout(() => playSentence(idx + 1), 600);
+      } else {
+        stopAutoPlay();
+        currentSentenceIdx = currentBook.sentences.length;
+        const done = document.getElementById('readerDone');
+        if (done) { done.style.display = 'block'; done.scrollIntoView({ behavior: 'smooth' }); }
+      }
+    }
+  };
+  speechSynthesis.speak(utter);
+}
+
+function toggleAutoPlay() {
+  if (isAutoPlaying) stopAutoPlay();
+  else startAutoPlay();
+}
+
+function startAutoPlay() {
+  isAutoPlaying = true;
+  const btn = document.getElementById('apBtn');
+  if (btn) { btn.textContent = '⏹ Stop'; btn.className = 'ap-btn stop'; }
+  const start = currentSentenceIdx < currentBook.sentences.length ? currentSentenceIdx : 0;
+  playSentence(start);
+}
+
+function stopAutoPlay() {
+  isAutoPlaying = false;
+  clearTimeout(autoPlayTimeout);
+  speechSynthesis.cancel();
+  const btn = document.getElementById('apBtn');
+  if (btn) { btn.textContent = '▶ Automatisch afspelen'; btn.className = 'ap-btn'; }
+}
+
+// ===================== INIT =====================
+renderVocab();
+renderGrammar();
+renderBookGrid();
+
+// ===================== PWA SETUP =====================
+// Inline manifest (zodat 1 bestand genoeg is)
+const manifest = {
+  name: "ProfesorIA — Leer Spaans",
+  short_name: "ProfesorIA",
+  description: "Leer Spaans met een AI-leraar",
+  start_url: ".",
+  display: "standalone",
+  background_color: "#0e0c0a",
+  theme_color: "#0e0c0a",
+  orientation: "portrait-primary",
+  icons: [
+    {
+      src: "data:image/svg+xml," + encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' rx='32' fill='%230e0c0a'/><text x='96' y='130' font-size='110' text-anchor='middle'>🇪🇸</text></svg>`),
+      sizes: "192x192",
+      type: "image/svg+xml",
+      purpose: "any maskable"
+    },
+    {
+      src: "data:image/svg+xml," + encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='80' fill='%230e0c0a'/><text x='256' y='360' font-size='300' text-anchor='middle'>🇪🇸</text></svg>`),
+      sizes: "512x512",
+      type: "image/svg+xml",
+      purpose: "any maskable"
+    }
+  ]
+};
+
+const manifestBlob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
+const manifestURL = URL.createObjectURL(manifestBlob);
+document.getElementById('manifestLink').href = manifestURL;
+
+// Service Worker (offline cache)
+if ('serviceWorker' in navigator) {
+  const swCode = `
+const CACHE = 'profesoria-v1';
+const OFFLINE_URLS = [self.location.href];
+self.addEventListener('install', e => {
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(OFFLINE_URLS)).catch(()=>{}));
+  self.skipWaiting();
+});
+self.addEventListener('activate', e => {
+  e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))));
+  self.clients.claim();
+});
+self.addEventListener('fetch', e => {
+  if (e.request.method !== 'GET') return;
+  e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
+});
+  `;
+  const swBlob = new Blob([swCode], { type: 'application/javascript' });
+  const swURL = URL.createObjectURL(swBlob);
+  navigator.serviceWorker.register(swURL).catch(() => {});
+}
+
+// Install prompt (Android "Voeg toe aan beginscherm")
+let deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  showInstallBanner();
+});
+
+function showInstallBanner() {
+  if (document.getElementById('installBanner')) return;
+  const banner = document.createElement('div');
+  banner.id = 'installBanner';
+  banner.style.cssText = `
+    position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
+    background: #221f1b; border: 1px solid #e8a045; border-radius: 12px;
+    padding: 14px 20px; display: flex; align-items: center; gap: 14px;
+    z-index: 300; box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    font-family: 'DM Sans', sans-serif; font-size: 0.88rem; color: #f0ead8;
+    max-width: 340px; width: calc(100% - 40px);
+  `;
+  banner.innerHTML = `
+    <span style="font-size:1.6rem">🇪🇸</span>
+    <div style="flex:1">
+      <div style="font-weight:500;margin-bottom:2px">Installeer ProfesorIA</div>
+      <div style="color:#8a7f72;font-size:0.8rem">Voeg toe aan je beginscherm</div>
+    </div>
+    <button onclick="installApp()" style="background:#e8a045;border:none;border-radius:8px;padding:8px 14px;color:#000;font-weight:500;cursor:pointer;font-family:inherit;font-size:0.82rem;">Installeer</button>
+    <button onclick="this.parentElement.remove()" style="background:none;border:none;color:#8a7f72;cursor:pointer;font-size:1.1rem;padding:0 4px;">✕</button>
+  `;
+  document.body.appendChild(banner);
+  // Auto-hide after 12s
+  setTimeout(() => banner.remove(), 12000);
+}
+
+async function installApp() {
+  const banner = document.getElementById('installBanner');
+  if (banner) banner.remove();
+  if (!deferredPrompt) {
+    alert('Gebruik in Chrome de menuknop (⋮) → "Toevoegen aan startscherm" om de app te installeren.');
+    return;
+  }
+  deferredPrompt.prompt();
+  const result = await deferredPrompt.userChoice;
+  deferredPrompt = null;
+}
+
+window.addEventListener('appinstalled', () => {
+  addMessage('ai', '🎉 ¡Fantástico! De app is geïnstalleerd op je beginscherm. Je kunt hem nu altijd snel openen!');
+});
+</script>
+</body>
+</html>
